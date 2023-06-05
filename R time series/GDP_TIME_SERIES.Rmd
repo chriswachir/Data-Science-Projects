@@ -1,0 +1,121 @@
+---
+title: "TIME SERIES ANALYSIS OF XYZ'S GDP"
+author: "sammy waiyaki"
+date: "3/23/2020"
+output: word_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+#  Time series analysis of XYZ's GDP from 1963-2016 using R  
+The data set containg value of GDPs for country XYZ from 1963 to 2016. Our aim is to explore the data to find insights of how the country has been perfoming economically and also to forecast the GDP values for the next 10 years.
+
+###  Reading GDP data set into R for analysis  
+```{r}
+GDP <- read.csv(file.choose(), header = T)
+View(GDP)
+```
+
+####  Transforming the data into a time series.  
+When the data is imported it is not initialized as a time series. therefore you must first trasform it into a time series data to carry out the analysis. 
+```{r}
+GDP_time_series <- ts(GDP, frequency = 1, start = c(1963, 1))
+```
+
+####  Ploting the time series data  
+Ploting helps in identifying any trend or seasonality that data might have. Also through studying we are able to know whether the data is stationary or not. 
+```{r}
+plot.ts(GDP_time_series)
+```
+
+The plot above does not show a proper trend or seasonality property contained in the data. In addition the data is not stationary as the mean, variance and autocorrelation are not time invariant. Confirmation for the non-stationarity of the data is indicated by the correlogram where the lags decreases gradually with time and are above the bounds of the correlogram.
+```{r}
+acf(GDP_time_series)
+```
+
+###  Decomposition of the GDP time series data. 
+From the plot, the GDP time sereies data is a non-seasonal data. We therefore need to decompose it in order to estimate the trend and irregular components of the data. since the data set can be described by an additive model, simple moving average is smoothing method  to estimate the trend and irregular components of the time series. 
+
+####  Library for simple moving average  
+```{r}
+library(TTR)
+```
+
+####  Simple moving average of order 3 
+```{r}
+GDP_time_series_SMA3 <- SMA(GDP_time_series, n=3)
+plot.ts(GDP_time_series_SMA3)
+```
+
+####  Simple moving average of order 5  
+```{r}
+GDP_time_series_SMA5 <- SMA(GDP_time_series, n=5)
+plot.ts(GDP_time_series_SMA5)
+```
+
+####  Simple moving average of order 8  
+```{r}
+GDP_time_series_SMA8 <- SMA(GDP_time_series, n=8)
+plot.ts(GDP_time_series_SMA8)
+```
+
+##  Simple exponential smoothing and forecasting  
+The simple exponential smoothing method provides a way of estimating the level at the current time point. Smoothing
+is controlled by the parameter alpha; for the estimate of the level at the current time point. The value of alpha; lies between 0 and 1. Values of alpha that are close to 0 mean that little weight is placed on the most recent observations when making forecasts of future values.
+
+###  Fitting Simple exponential smmothing to data  
+```{r}
+GDP_time_series_SESM <- HoltWinters(GDP_time_series, beta = F, gamma = F)
+GDP_time_series_SESM
+View(GDP_time_series_SESM$fitted)
+plot(GDP_time_series_SESM)
+GDP_time_series_SESM$SSE
+```
+###  Forecasting GDP for the next 10 years  
+```{r}
+library(forecast)
+GDP_time_series_SESM_forecast <- forecast(GDP_time_series_SESM, h=10)
+GDP_time_series_SESM_forecast
+GDP_time_series_SESM_forecast$residuals
+plot(GDP_time_series_SESM_forecast)
+```
+
+###  Correlation of forecast Errors and successive prediction.  
+A simple exponential smoothing is considere accurate and cannot be improved by another model if there is no correlation between the errors of forecast and successive prediction. We explore the correlogram residual to identify any correlation. further, we perfom Ljung Box test to see the significance of the non-zero correlation.
+```{r}
+acf(GDP_time_series_SESM_forecast$residuals, lag.max = 20, na.action = na.pass)
+```
+###  Ljung Box test  
+```{r}
+Box.test(GDP_time_series_SESM_forecast$residuals, lag=20, type = 'Ljung-Box')
+```
+## ARIMA MODEL
+ARIMA is an acronym of Autoregressive Integreted Moving Average. ARIMA models include an explicit statistical model for the irregular component of a time series, that allows for non-zero autocorrelations in the irregular component. Arima models usally have three parameter;p is the number of lag observation, d is the order of differentiation that makes the data stationary and q is the order on the moving average.
+###  Differentiate time series to make it stationary
+When a time series is non-stationary, it can be stationarized by differentiating in different orders until it attains stationarity. the order of differentiation that makes the data stationdary becomes the d parameter.
+```{r}
+GDP_time_series1 <- diff(GDP_time_series, differences = 1)
+plot.ts(GDP_time_series1)
+```
+###  Finding appropirate values for p and q
+```{r}
+acf(GDP_time_series1)
+pacf(GDP_time_series1)
+```
+Alternatively auto.arima() function in the forecast libraby can used to find the best values of pdq
+```{r}
+auto.arima(GDP_time_series)
+```
+###  Fiting the ARIMA model to GDP data
+```{r}
+GDP_time_series_Arima <- arima(GDP_time_series, order = c(0,1,1))
+GDP_time_series_Arima
+```
+
+##  Forecasting using the ARIMA model and plotting
+```{r}
+GDP_arima_forecast <- forecast(GDP_time_series_Arima, h=10)
+GDP_arima_forecast
+plot(GDP_arima_forecast)
+```

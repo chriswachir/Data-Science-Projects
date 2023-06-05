@@ -1,0 +1,145 @@
+---
+title: "Simple Exonential Smoothing and ARIMA time series"
+author: "sammy waiyaki"
+date: "5/13/2020"
+output: word_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## R Markdown
+### Reading Data 
+```{r}
+TSData <- read.csv(file.choose(), header = T)
+View(TSData)
+summary(TSData)
+sum(is.na(TSData))
+std_deviation <-sqrt(var(TSData))
+std_deviation
+```
+### Visualizing Outliers using Boxplot
+```{r}
+boxplot(TSData, main="Boxplot of Adjusted Clossing Prices")
+```
+### Transforming the data into time series
+```{r}
+TSData <- ts(TSData)
+head(TSData, n=50)
+```
+### Plotting the daily time series
+```{r}
+plot.ts(TSData, main=" Daily Adj Close")
+```
+
+### Simple Moving Average Smoothing
+```{r}
+library(TTR)
+TSDataSMA3 <- SMA(TSData, n = 3)
+plot.ts(TSDataSMA3)
+
+TSDataSMA6 <- SMA(TSData, n = 6)
+plot.ts(TSDataSMA6)
+
+TSDataSMA10 <- SMA(TSData, n = 10)
+plot.ts(TSDataSMA10)
+```
+###exponential smoothing
+```{r}
+TSData_forecast <- HoltWinters(TSData, beta = F, gamma = F)
+TSData_forecast
+summary(TSData_forecast)
+plot(TSData_forecast)
+```
+### Forecasting Using SES
+```{r}
+library(forecast)
+TSData_forecast1 <- forecast(TSData_forecast, h=300)
+TSData_forecast1
+summary(TSData_forecast1)
+plot(TSData_forecast1)
+```
+### Evaluating Model fit and Ljung Box test 
+```{r}
+acf(TSData_forecast1$residuals, lag.max = 50, na.action = na.pass)
+Box.test(TSData_forecast1$residuals, lag=20, type = 'Ljung-Box')
+accuracy(TSData_forecast1)
+```
+### Evaluating residuals of SES
+```{r}
+checkresiduals(TSData_forecast)
+```
+
+## ARIMA
+### Confirming non-stationarity of the data using ACF, PACF, and Augmented Dickey-Fuller Test
+```{r}
+library(tseries)
+acf(TSData)
+pacf(TSData)
+adf.test(TSData, alternative = "stationary")
+```
+### Making the data stationary by differentiating it to Degree one.
+```{r}
+series1 <- diff(TSData, differences = 1)
+plot.ts(series1)
+acf(series1)
+pacf(series1)
+adf.test(series1, alternative = "stationary")
+```
+## Using Auto Arima to find appropriate parameters for p,q, d
+```{r}
+my_arima <- auto.arima(TSData)
+summary(my_arima)
+```
+### Forecasting with Auto Arima
+```{r}
+my_arima_forecast <- forecast(my_arima, h = 365)
+plot(my_arima_forecast)
+```
+### Checking model Fit of the auto arima 
+```{r}
+acf(my_arima_forecast$residuals, lag.max = 50, na.action = na.pass)
+Box.test(my_arima_forecast$residuals, lag=20, type = 'Ljung-Box')
+accuracy(my_arima_forecast)
+checkresiduals(my_arima)
+```
+The Auto-Arima model is inadequate 
+### Looking for pdq parameter with lowest AIC for ARIMA model
+```{r}
+record_AIC = matrix(0,7,7)
+rownames(record_AIC) = c('p=0', 'p=1', 'p=2', 'p=3', 'p=4','p=5', 'p=6')
+colnames(record_AIC) = c('q=0', 'q=1', 'q=2', 'q=3', 'q=4','q=5', 'q=6')
+for(p in 0:6){
+  for(q in 0:6){
+    m <- arima(series1, order = c(p,0,q), include.mean = TRUE)
+    record_AIC[p+1, q+1] <- m$aic
+  }
+}
+```
+### Table of p, q and d=1 showing AIC values
+```{r}
+library(knitr)
+kable(record_AIC,caption = 'AIC')
+```
+### Showing p q with lowest AIC at d=1
+```{r}
+which(record_AIC==min(record_AIC), arr.ind = TRUE)
+min(record_AIC)
+```
+### Fitting ARIMA(6,1,5)
+```{r}
+arima2 <- arima(TSData,order = c(6,1,5))
+accuracy(arima2)
+```
+### Evaluating model adequacy
+```{r}
+checkresiduals(arima2)
+```
+### Forecasting With ARIMA(6,1,5)
+```{r}
+arima2_forecast <- forecast(arima2, h=365)
+plot(arima2_forecast)
+```
+
+
