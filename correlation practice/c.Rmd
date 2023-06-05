@@ -1,0 +1,41 @@
+---
+title: "Correlations"
+author: "sammy waiyaki"
+date: "November 7, 2019"
+output:
+  word_document: default
+  html_document: default
+---
+```{r}
+# data loading
+AlzData <- read.csv(file.choose(), header = T)
+View(AlzData)
+attach(AlzData)
+
+# data exploration
+dim(AlzData)
+AlzData <- na.omit(AlzData)
+
+# correlations
+cor(Behavioral...Memory, Hippocampus.Plaque.Density)
+
+library(ggplot2)
+qplot(Behavioral...Memory, Hippocampus.Plaque.Density, geom = c('point', 'smooth'), method = 'lm', main = 'scatter plot of Memory ability and Hippocampus plaque Density')
+
+cor(Behavioral...Memory, Temporal.Plaque.Density)
+
+qplot(Behavioral...Memory, Temporal.Plaque.Density, geom = c('point', 'smooth'), method = 'lm', main = 'scatter plot of Memory ability and Temporal plaque Density')
+
+cor(Behavioral...Navigation, Hippocampus.Plaque.Density)
+qplot(Behavioral...Navigation, Hippocampus.Plaque.Density, geom = c('point', 'smooth'), method = 'lm', main = 'scatter plot of Navigational ability and Hippocampus plaque Density')
+
+cor(Behavioral...Navigation, Temporal.Plaque.Density)
+qplot(Behavioral...Navigation, Temporal.Plaque.Density, geom = c('point', 'smooth'), method = 'lm', main = 'scatter plot of Navigational ability and Temporal plaque Density')
+
+cor(Age, Hippocampus.Plaque.Density)
+qplot(Age, Hippocampus.Plaque.Density, geom = c('point', 'smooth'), method = 'lm', main = 'scatter Age and Hippocampus plaque Density')
+
+cor(Age, Temporal.Plaque.Density)
+qplot(Age, Temporal.Plaque.Density, geom = c('point', 'smooth'), method = 'lm', main = 'scatter plot of Age and Temporal plaque Density')
+
+```
